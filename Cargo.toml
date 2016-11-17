@@ -1,0 +1,17 @@
+[package]
+name = "jsonnet"
+version = "0.5.0"
+authors = ["Angus Lees <gus@inodes.org>"]
+license = "Apache-2.0"
+keywords = ["jsonnet"]
+repository = "https://github.com/anguslees/rust-jsonnet"
+description = """
+Bindings to libjsonnet (https://jsonnet.org/).
+"""
+
+[dependencies]
+libc = "0.2"
+jsonnet-sys = { path = "jsonnet-sys", version = "0.5.0" }
+
+[dev-dependencies]
+clap = "2.18"

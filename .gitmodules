@@ -1,0 +1,3 @@
+[submodule "jsonnet-sys/jsonnet"]
+	path = jsonnet-sys/jsonnet
+	url = https://github.com/google/jsonnet.git

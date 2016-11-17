@@ -1,0 +1,18 @@
+[package]
+name = "jsonnet-sys"
+version = "0.5.0"
+authors = ["Angus Lees <gus@inodes.org>"]
+links = "jsonnet"
+build = "build.rs"
+repository = "https://github.com/anguslees/rust-jsonnet"
+license = "Apache-2.0"
+description = "Native bindings to the libjsonnet library"
+
+[lib]
+name = "jsonnet_sys"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+gcc = "0.3"
