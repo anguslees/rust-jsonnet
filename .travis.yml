@@ -1,0 +1,20 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+sudo: false
+before_script:
+  - PATH=$HOME/.local/bin:$PATH
+  - pip install 'travis-cargo<0.2' --user
+script:
+  - cargo build --verbose
+  - cargo test --verbose --manifest-path=jsonnet-sys/Cargo.toml
+  - cargo test --verbose
+  - cargo doc --no-deps
+after_success:
+  - travis-cargo --only nightly doc-upload
+  - travis-cargo coveralls --no-sudo
+notifications:
+  email:
+    on_success: never
