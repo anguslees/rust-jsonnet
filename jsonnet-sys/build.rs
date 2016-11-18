@@ -44,7 +44,8 @@ fn main() {
     ];
 
     let mut c = gcc::Config::new();
-    c .cpp(true)
+    c.cpp(true)
+        .flag("-std=c++0x")
         .include(dir.join("include"));
 
     for f in &jsonnet_core {
