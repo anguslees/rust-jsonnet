@@ -4,8 +4,10 @@ rust:
   - beta
   - nightly
 sudo: false
-script:
+before_script:
+  - cat /etc/os-release
   - ${CXX:-c++} --version
+script:
   - cargo build --verbose
   - cargo test --verbose --manifest-path=jsonnet-sys/Cargo.toml
   - cargo test --verbose
@@ -16,4 +18,4 @@ notifications:
 addons:
   apt:
     packages:
-      - g++
+      - g++-5
