@@ -4,10 +4,10 @@ rust:
   - beta
   - nightly
 sudo: false
-before_script:
-  - cat /etc/os-release
-  - ${CXX:-c++} --version
 script:
+  # NB: travis-ci overrides CC/CXX if set directly in `env`
+  - export CC=${COMPILER}
+  - export CXX=${COMPILER_XX}
   - cargo build --verbose
   - cargo test --verbose --manifest-path=jsonnet-sys/Cargo.toml
   - cargo test --verbose
@@ -17,5 +17,12 @@ notifications:
     on_success: never
 addons:
   apt:
+    # OMG, travis-ci's usual g++ is 4.6 from 2012 :(
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
-      - g++-4.9
+      - gcc-5
+      - g++-5
+env:
+  COMPILER=gcc-5
+  COMPILER_XX=g++-5
