@@ -7,9 +7,6 @@ rust:
 dist: trusty
 group: beta
 sudo: false
-compiler:
-  - gcc
-  - clang
 script:
   - cargo build --verbose
   - cargo test --verbose --manifest-path=jsonnet-sys/Cargo.toml

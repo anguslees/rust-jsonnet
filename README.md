@@ -1,5 +1,7 @@
 # rust-jsonnet
 
+[![Build Status](https://travis-ci.org/anguslees/rust-jsonnet.svg?branch=master)](https://travis-ci.org/anguslees/rust-jsonnet)
+
 libjsonnet bindings for Rust
 
 ```toml
