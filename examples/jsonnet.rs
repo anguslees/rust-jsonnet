@@ -175,7 +175,7 @@ fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), B
     if matches.is_present("string") {
         vm.string_output(true);
     }
-    if let Some(paths) = matches.values_of("incdir") {
+    if let Some(paths) = matches.values_of_os("incdir") {
         for path in paths {
             vm.jpath_add(path);
         }
@@ -222,7 +222,7 @@ fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), B
             let expr = matches.value_of("INPUT").unwrap();
             try!(vm.evaluate_snippet("INPUT", expr))
         } else {
-            let file = matches.value_of("INPUT").unwrap();
+            let file = matches.value_of_os("INPUT").unwrap();
             try!(vm.evaluate_file(file))
         };
 
@@ -273,7 +273,7 @@ fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Bo
             let expr = matches.value_of("INPUT").unwrap();
             try!(vm.fmt_snippet("INPUT", expr))
         } else {
-            let file = matches.value_of("INPUT").unwrap();
+            let file = matches.value_of_os("INPUT").unwrap();
             try!(vm.fmt_file(file))
         };
 

@@ -24,7 +24,7 @@
 extern crate libc;
 extern crate jsonnet_sys;
 
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, OsStr};
 use std::path::{Path,PathBuf};
 use std::{error,iter,ptr,fmt};
 use std::ops::Deref;
@@ -203,6 +203,17 @@ struct ImportContext<'a> {
     cb: ImportCallback<'a>,
 }
 
+fn cstr2osstr(cstr: &CStr) -> &OsStr {
+    use std::os::unix::ffi::OsStrExt;
+    OsStr::from_bytes(cstr.as_ref().to_bytes())
+}
+
+// Panics if os contains embedded nul characters!
+fn osstr2cstring<T: AsRef<OsStr>>(os: T) -> CString {
+    use std::os::unix::ffi::OsStrExt;
+    CString::new(os.as_ref().as_bytes()).unwrap()
+}
+
 // `jsonnet_sys::JsonnetImportCallback`-compatible function that
 // interprets `ctx` as an `ImportContext` and converts arguments
 // appropriately.
@@ -210,14 +221,16 @@ extern fn import_callback(ctx: *mut c_void, base: &c_char, rel: &c_char, found_h
     let ctx = unsafe { &*(ctx as *mut ImportContext) };
     let vm = ctx.vm;
     let callback = ctx.cb;
-    let base_cstr = unsafe { CStr::from_ptr(base) };
-    let base_path = Path::new(base_cstr.to_str().unwrap());
-    let rel_cstr = unsafe { CStr::from_ptr(rel) };
-    let rel_path = Path::new(rel_cstr.to_str().unwrap());
+    let base_path = Path::new(cstr2osstr(unsafe { CStr::from_ptr(base) }));
+    let rel_path = Path::new(cstr2osstr(unsafe { CStr::from_ptr(rel) }));
     match callback(vm, base_path, rel_path) {
         Ok((found_here_, contents)) => {
             *success = 1;
-            *found_here = JsonnetString::new(vm, found_here_.to_str().unwrap()).into_raw();
+            // Note: PathBuf may not be valid utf8.
+            use std::os::unix::ffi::OsStrExt;
+            let v = JsonnetString::from_bytes(vm, found_here_.as_os_str().as_bytes());
+            *found_here = v.into_raw();
+
             JsonnetString::new(vm, &contents).into_raw()
         },
         Err(err) => {
@@ -516,9 +529,9 @@ impl JsonnetVm {
     ///
     /// Panics if `filename` contains embedded nul characters.
     pub fn fmt_file<'a,P>(&'a mut self, filename: P) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let mut error = 1;
         let output = unsafe {
             let v = jsonnet_sys::jsonnet_fmt_file(self.0, fname.as_ptr(), &mut error);
@@ -536,9 +549,9 @@ impl JsonnetVm {
     ///
     /// Panics if `filename` or `snippet` contain embedded nul characters.
     pub fn fmt_snippet<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let snippet = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
@@ -565,9 +578,9 @@ impl JsonnetVm {
     ///
     /// Panics if `path` contains embedded nul characters.
     pub fn jpath_add<P>(&mut self, path: P)
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let v = CString::new(path).unwrap();
+        let v = osstr2cstring(path);
         unsafe {
             jsonnet_sys::jsonnet_jpath_add(self.0, v.as_ptr());
         }
@@ -583,9 +596,9 @@ impl JsonnetVm {
     ///
     /// Panics if `filename` contains embedded nul characters.
     pub fn evaluate_file<'a,P>(&'a mut self, filename: P) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let mut error = 1;
         let output = unsafe {
             let v = jsonnet_sys::jsonnet_evaluate_file(self.0, fname.as_ptr(), &mut error);
@@ -608,8 +621,10 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` or `snippet` contain embedded nul characters.
-    pub fn evaluate_snippet<'a, P: Into<Vec<u8>>>(&'a mut self, filename: P, snippet: &str) -> Result<JsonnetString<'a>, Error<'a>> {
-        let fname = CString::new(filename).unwrap();
+    pub fn evaluate_snippet<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<JsonnetString<'a>, Error<'a>>
+        where P: AsRef<OsStr>
+    {
+        let fname = osstr2cstring(filename);
         let snip = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
@@ -633,9 +648,9 @@ impl JsonnetVm {
     ///
     /// Panics if `filename` contains embedded nul characters.
     pub fn evaluate_file_multi<'a,P>(&'a mut self, filename: P) -> Result<EvalMap<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let mut error = 1;
         let output = unsafe {
             let v = jsonnet_sys::jsonnet_evaluate_file_multi(self.0, fname.as_ptr(), &mut error);
@@ -672,9 +687,9 @@ impl JsonnetVm {
     /// assert_eq!(*map.get("bar.json").unwrap(), "\"bar\"\n");
     /// ```
     pub fn evaluate_snippet_multi<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<EvalMap<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let snippet = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
@@ -698,9 +713,9 @@ impl JsonnetVm {
     ///
     /// Panics if `filename` contains embedded nul characters.
     pub fn evaluate_file_stream<'a,P>(&'a mut self, filename: P) -> Result<EvalList<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let mut error = 1;
         let output = unsafe {
             let v = jsonnet_sys::jsonnet_evaluate_file_stream(self.0, fname.as_ptr(), &mut error);
@@ -736,9 +751,9 @@ impl JsonnetVm {
     /// assert_eq!(list, vec!["\"foo\"\n", "\"bar\"\n"]);
     /// ```
     pub fn evaluate_snippet_stream<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<EvalList<'a>, Error<'a>>
-        where P: Into<Vec<u8>>
+        where P: AsRef<OsStr>
     {
-        let fname = CString::new(filename).unwrap();
+        let fname = osstr2cstring(filename);
         let snippet = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
