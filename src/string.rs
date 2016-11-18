@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::ops::Deref;
 use std::{fmt,ptr,mem};
 use std::marker::PhantomData;
@@ -24,14 +24,21 @@ impl<'a> JsonnetString<'a> {
     ///
     /// Panics if `v` contains an embedded nul character.
     pub fn new(vm: &'a JsonnetVm, v: &str) -> Self {
-        // TODO: remove this additional copy, and just copy the bytes
-        // and add the trailing nul myself (remember to check for
-        // embedded nuls).
+        JsonnetString::from_bytes(vm, v.as_bytes())
+    }
 
-        let data = CString::new(v).unwrap().into_bytes_with_nul();
+    /// Allocate a new JsonnetString and copy `v` into it.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `v` contains an embedded nul character.  In most
+    /// cases, jsonnet requires strings to be utf8, so prefer
+    /// `JsonnetString::new` over this function.
+    pub fn from_bytes(vm: &'a JsonnetVm, v: &[u8]) -> Self {
         unsafe {
-            let p = jsonnet_sys::jsonnet_realloc(vm.as_ptr(), ptr::null(), data.len());
-            ptr::copy_nonoverlapping(data.as_ptr(), p as *mut u8, data.len());
+            let p = jsonnet_sys::jsonnet_realloc(vm.as_ptr(), ptr::null(), v.len() + 1);
+            ptr::copy_nonoverlapping(v.as_ptr(), p as *mut u8, v.len());
+            *(p.offset(v.len() as isize)) = 0;  // trailing nul for C string
             Self::from_ptr(vm, p)
         }
     }
