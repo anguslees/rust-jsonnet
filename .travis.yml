@@ -5,7 +5,7 @@ rust:
   - nightly
 sudo: false
 script:
-  - ${CXX:-cc} --version
+  - ${CXX:-c++} --version
   - cargo build --verbose
   - cargo test --verbose --manifest-path=jsonnet-sys/Cargo.toml
   - cargo test --verbose
@@ -16,4 +16,4 @@ notifications:
 addons:
   apt:
     packages:
-      - gcc
+      - g++
