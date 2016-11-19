@@ -203,15 +203,38 @@ struct ImportContext<'a> {
     cb: ImportCallback<'a>,
 }
 
-fn cstr2osstr(cstr: &CStr) -> &OsStr {
+#[cfg(unix)]
+fn bytes2osstr(b: &[u8]) -> &OsStr {
     use std::os::unix::ffi::OsStrExt;
-    OsStr::from_bytes(cstr.as_ref().to_bytes())
+    OsStr::from_bytes(b)
 }
 
-// Panics if os contains embedded nul characters!
-fn osstr2cstring<T: AsRef<OsStr>>(os: T) -> CString {
+/// Panics if os contains invalid utf8!
+#[cfg(windows)]
+fn bytes2osstr(b: &[u8]) -> &OsStr {
+    let s = std::str::from_utf8(b).unwrap();
+    OsStr::new(s)
+}
+
+fn cstr2osstr(cstr: &CStr) -> &OsStr {
+    bytes2osstr(cstr.to_bytes())
+}
+
+#[cfg(unix)]
+fn osstr2bytes(os: &OsStr) -> &[u8] {
     use std::os::unix::ffi::OsStrExt;
-    CString::new(os.as_ref().as_bytes()).unwrap()
+    os.as_bytes()
+}
+
+/// Panics if os contains invalid utf8!
+#[cfg(windows)]
+fn osstr2bytes(os: &OsStr) -> &[u8] {
+    os.to_str().unwrap().as_bytes()
+}
+
+fn osstr2cstring<T: AsRef<OsStr>>(os: T) -> CString {
+    let b = osstr2bytes(os.as_ref());
+    CString::new(b).unwrap()
 }
 
 // `jsonnet_sys::JsonnetImportCallback`-compatible function that
@@ -224,11 +247,14 @@ extern fn import_callback(ctx: *mut c_void, base: &c_char, rel: &c_char, found_h
     let base_path = Path::new(cstr2osstr(unsafe { CStr::from_ptr(base) }));
     let rel_path = Path::new(cstr2osstr(unsafe { CStr::from_ptr(rel) }));
     match callback(vm, base_path, rel_path) {
-        Ok((found_here_, contents)) => {
+        Ok((found_here_path, contents)) => {
             *success = 1;
-            // Note: PathBuf may not be valid utf8.
-            use std::os::unix::ffi::OsStrExt;
-            let v = JsonnetString::from_bytes(vm, found_here_.as_os_str().as_bytes());
+
+            let v = {
+                // Note: PathBuf may not be valid utf8.
+                let b = osstr2bytes(found_here_path.as_os_str());
+                JsonnetString::from_bytes(vm, b)
+            };
             *found_here = v.into_raw();
 
             JsonnetString::new(vm, &contents).into_raw()
@@ -772,4 +798,22 @@ impl Drop for JsonnetVm {
         assert!(!self.0.is_null());
         unsafe { jsonnet_sys::jsonnet_destroy(self.0) }
     }
+}
+
+#[test]
+fn basic_eval() {
+    let mut vm = JsonnetVm::new();
+    let result = vm.evaluate_snippet("example", "'Hello ' + 'World'");
+    println!("result is {:?}", result);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().to_string(), "\"Hello World\"\n");
+}
+
+#[test]
+fn basic_eval_err() {
+    let mut vm = JsonnetVm::new();
+    let result = vm.evaluate_snippet("example", "bogus");
+    println!("result is {:?}", result);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Unknown variable: bogus"));
 }
