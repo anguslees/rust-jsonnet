@@ -1,6 +1,7 @@
 # rust-jsonnet
 
 [![crates.io Version Badge](https://img.shields.io/crates/v/jsonnet-rs.svg)](https://crates.io/crates/jsonnet-rs)
+[![docs.rs Doc Badge](https://docs.rs/jsonnet-rs/badge.svg)](https://docs.rs/jsonnet-rs)
 [![Build Status Badge](https://travis-ci.org/anguslees/rust-jsonnet.svg?branch=master)](https://travis-ci.org/anguslees/rust-jsonnet)
 
 libjsonnet bindings for Rust
