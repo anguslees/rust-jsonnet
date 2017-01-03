@@ -6,7 +6,7 @@ libjsonnet bindings for Rust
 
 ```toml
 [dependencies]
-jsonnet = "0.5"
+jsonnet-rs = "0.5"
 ```
 
 ### Building rust-jsonnet
@@ -20,6 +20,10 @@ $ git clone https://github.com/anguslees/rust-jsonnet
 $ cd rust-jsonnet
 $ cargo build
 ```
+
+See also `examples/jsonnet.rs` for an almost-but-not-quite drop-in
+replacement for the official `jsonnet` executable implemented using
+this library.
 
 # License
 
