@@ -1,6 +1,6 @@
 //! # jsonnet bindings for Rust
 //!
-//! This library containers bindings to the [jsonnet][1] C library,
+//! This library contains bindings to the [jsonnet][1] C library,
 //! a template language that generates JSON and YAML.
 //!
 //! Almost all interaction with this module will be via the
