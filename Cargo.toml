@@ -3,10 +3,13 @@ name = "jsonnet-rs"
 version = "0.5.0"
 authors = ["Angus Lees <gus@inodes.org>"]
 license = "Apache-2.0"
-keywords = ["jsonnet"]
-repository = "https://github.com/anguslees/rust-jsonnet"
+keywords = ["json", "jsonnet"]
+readme = "README.md"
+documentation = "https://docs.rs/jsonnet-rs"
+repository = "https://github.com/anguslees/rust-jsonnet.git"
 description = """
-Bindings to libjsonnet (https://jsonnet.org/).
+Bindings to libjsonnet (https://jsonnet.org/), a domain specific
+configuration language that helps you define JSON data.
 """
 
 [lib]
