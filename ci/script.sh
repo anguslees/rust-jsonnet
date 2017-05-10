@@ -10,7 +10,7 @@ main() {
         return
     fi
 
-    cross test --verbose --target $TARGET --manifest-path=jsonnet-sys/Cargo.toml
+    #cross test --verbose --target $TARGET --manifest-path=jsonnet-sys/Cargo.toml
     cross test --verbose --target $TARGET
     cross test --verbose --target $TARGET --release
 }

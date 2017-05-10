@@ -19,5 +19,5 @@ install:
 build: false
 
 test_script:
-  - cargo test --verbose --target %TARGET% --manifest-path=jsonnet-sys/Cargo.toml
+  #- cargo test --verbose --target %TARGET% --manifest-path=jsonnet-sys/Cargo.toml
   - cargo test --verbose --target %TARGET%
