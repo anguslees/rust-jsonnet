@@ -8,7 +8,7 @@ libjsonnet bindings for Rust
 
 ```toml
 [dependencies]
-jsonnet-rs = "0.5"
+jsonnet-rs = "0.6"
 ```
 
 ### Building rust-jsonnet
