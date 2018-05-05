@@ -1,6 +1,6 @@
 [package]
 name = "jsonnet-rs"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Angus Lees <gus@inodes.org>"]
 license = "Apache-2.0"
 keywords = ["json", "jsonnet"]
@@ -17,7 +17,7 @@ name = "jsonnet"
 
 [dependencies]
 libc = "0.2"
-jsonnet-sys = { path = "jsonnet-sys", version = "0.5.0" }
+jsonnet-sys = { path = "jsonnet-sys", version = "0.6.0" }
 
 [dev-dependencies]
 clap = "2.31"
