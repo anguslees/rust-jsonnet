@@ -151,6 +151,9 @@ fn build_cli<'a,'b>(version: &'b str) -> App<'a,'b> {
                     .arg(Arg::with_name("no-pad-objects")
                          .long("no-pad-objects")
                          .help("{ x: 1, x: 2 } instead of {x: 1, y: 2}"))
+                    .arg(Arg::with_name("no-sort-imports")
+                         .long("no-sort-imports")
+                         .help("Don't sort imports"))
                     .arg(Arg::with_name("debug-desugaring")
                          .long("debug-desugaring")
                          .help("Unparse the desugared AST without executing it"))
@@ -263,6 +266,9 @@ fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Bo
     }
     if matches.is_present("no-pad-objects") {
         vm.fmt_pad_objects(false);
+    }
+    if matches.is_present("no-sort-imports") {
+        vm.fmt_sort_import(false);
     }
     if matches.is_present("debug-desugaring") {
         vm.fmt_debug_desugaring(true);

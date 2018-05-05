@@ -53,6 +53,7 @@ extern {
     pub fn jsonnet_fmt_pad_arrays(vm: *mut JsonnetVm, v: c_int);
     pub fn jsonnet_fmt_pad_objects(vm: *mut JsonnetVm, v: c_int);
     pub fn jsonnet_fmt_pretty_field_names(vm: *mut JsonnetVm, v: c_int);
+    pub fn jsonnet_fmt_sort_imports(vm: *mut JsonnetVm, v: c_int);
     pub fn jsonnet_fmt_debug_desugaring(vm: *mut JsonnetVm, v: c_int);
     pub fn jsonnet_fmt_file(vm: *mut JsonnetVm, filename: *const c_char, error: *mut c_int) -> *mut c_char;
     pub fn jsonnet_fmt_snippet(vm: *mut JsonnetVm, filename: *const c_char, snippet: *const c_char, error: *mut c_int) -> *mut c_char;

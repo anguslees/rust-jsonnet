@@ -542,6 +542,13 @@ impl JsonnetVm {
         }
     }
 
+    /// Sort top-level imports in alphabetical order
+    pub fn fmt_sort_import(&mut self, sort: bool) {
+        unsafe {
+            jsonnet_sys::jsonnet_fmt_sort_imports(self.0, sort as c_int);
+        }
+    }
+
     /// Reformat the Jsonnet input after desugaring.
     pub fn fmt_debug_desugaring(&mut self, reformat: bool) {
         unsafe {
@@ -599,6 +606,9 @@ impl JsonnetVm {
     }
 
     /// Add to the default import callback's library search path.
+    ///
+    /// Search order is last to first, so more recently appended paths
+    /// take precedence.
     ///
     /// # Panics
     ///
