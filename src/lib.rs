@@ -196,11 +196,9 @@ fn test_version() {
 }
 
 /// Callback used to load imports.
-pub type ImportCallback<'a> = fn(vm: &'a JsonnetVm, base: &Path, rel: &Path) -> Result<(PathBuf, String), String>;
-
-struct ImportContext<'a> {
+struct ImportContext<'a, F> {
     vm: &'a JsonnetVm,
-    cb: ImportCallback<'a>,
+    cb: F,
 }
 
 #[cfg(unix)]
@@ -240,10 +238,12 @@ fn osstr2cstring<T: AsRef<OsStr>>(os: T) -> CString {
 // `jsonnet_sys::JsonnetImportCallback`-compatible function that
 // interprets `ctx` as an `ImportContext` and converts arguments
 // appropriately.
-extern fn import_callback(ctx: *mut c_void, base: &c_char, rel: &c_char, found_here: &mut *mut c_char, success: &mut c_int) -> *mut c_char {
-    let ctx = unsafe { &*(ctx as *mut ImportContext) };
+extern fn import_callback<F>(ctx: *mut c_void, base: &c_char, rel: &c_char, found_here: &mut *mut c_char, success: &mut c_int) -> *mut c_char
+where F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>
+{
+    let ctx = unsafe { &*(ctx as *mut ImportContext<F>) };
     let vm = ctx.vm;
-    let callback = ctx.cb;
+    let callback = &ctx.cb;
     let base_path = Path::new(cstr2osstr(unsafe { CStr::from_ptr(base) }));
     let rel_path = Path::new(cstr2osstr(unsafe { CStr::from_ptr(rel) }));
     match callback(vm, base_path, rel_path) {
@@ -271,22 +271,21 @@ extern fn import_callback(ctx: *mut c_void, base: &c_char, rel: &c_char, found_h
 /// This callback should not have side-effects!  Jsonnet is a lazy
 /// functional language and will call your function when you least
 /// expect it, more times than you expect, or not at all.
-// TODO: Convert to closure
-pub type NativeCallback<'a> = fn(vm: &'a JsonnetVm, argv: &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>;
-
-struct NativeContext<'a> {
+struct NativeContext<'a, F> {
     vm: &'a JsonnetVm,
     argc: usize,
-    cb: NativeCallback<'a>,
+    cb: F,
 }
 
 // `jsonnet_sys::JsonnetNativeCallback`-compatible function that
 // interprets `ctx` as a `NativeContext` and converts arguments
 // appropriately.
-extern fn native_callback(ctx: *mut libc::c_void, argv: *const *const JsonnetJsonValue, success: &mut c_int) -> *mut JsonnetJsonValue {
-    let ctx = unsafe { &*(ctx as *mut NativeContext) };
+extern fn native_callback<'a, F>(ctx: *mut libc::c_void, argv: *const *const JsonnetJsonValue, success: &mut c_int) -> *mut JsonnetJsonValue
+where F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>
+{
+    let ctx = unsafe { &*(ctx as *mut NativeContext<F>) };
     let vm = ctx.vm;
-    let callback = ctx.cb;
+    let callback = &ctx.cb;
     let args: Vec<_> = (0..ctx.argc)
         .map(|i| unsafe { JsonVal::from_ptr(vm, *argv.offset(i as isize)) })
         .collect();
@@ -347,7 +346,8 @@ impl JsonnetVm {
     /// use std::ffi::OsStr;
     /// use jsonnet::JsonnetVm;
     ///
-    /// fn myimport<'a>(_vm: &'a JsonnetVm, base: &Path, rel: &Path) -> Result<(PathBuf, String), String> {
+    /// let mut vm = JsonnetVm::new();
+    /// vm.import_callback(|_vm, base, rel| {
     ///    if rel.file_stem() == Some(OsStr::new("bar")) {
     ///       let newbase = base.into();
     ///       let contents = "2 + 3".to_owned();
@@ -355,10 +355,8 @@ impl JsonnetVm {
     ///    } else {
     ///       Err("not found".to_owned())
     ///    }
-    /// }
+    /// });
     ///
-    /// let mut vm = JsonnetVm::new();
-    /// vm.import_callback(myimport);
     /// {
     ///    let output = vm.evaluate_snippet("myimport", "import 'x/bar.jsonnet'").unwrap();
     ///    assert_eq!(output.to_string(), "5\n");
@@ -369,14 +367,16 @@ impl JsonnetVm {
     ///    assert!(result.is_err());
     /// }
     /// ```
-    pub fn import_callback<'a>(&'a mut self, cb: ImportCallback<'a>) {
+    pub fn import_callback<F>(&mut self, cb: F)
+        where F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>
+    {
         let ctx = ImportContext {
             vm: self,
             cb: cb,
         };
         unsafe {
             jsonnet_sys::jsonnet_import_callback(self.as_ptr(),
-                                                 import_callback as *const _,
+                                                 import_callback::<F> as *const _,
                                                  // TODO: ctx is leaked :(
                                                  Box::into_raw(Box::new(ctx)) as *mut _);
         }
@@ -412,12 +412,24 @@ impl JsonnetVm {
     ///       "std.native('myadd')('foo', 'bar')");
     ///    assert!(result.is_err());
     /// }
+    ///
+    /// vm.native_callback("upcase", |vm, args| {
+    ///       let s = try!(args[0].as_str().ok_or("Expected a string"));
+    ///       Ok(JsonValue::from_str(vm, &s.to_uppercase()))
+    ///    }, &["s"]);
+    /// {
+    ///    let result = vm.evaluate_snippet("nativeclosure",
+    ///       "std.native('upcase')('foO')");
+    ///    assert_eq!(result.unwrap().as_str(), "\"FOO\"\n");
+    /// }
     /// ```
     ///
     /// # Panics
     ///
     /// Panics if `name` or `params` contain any embedded nul characters.
-    pub fn native_callback<'a>(&'a mut self, name: &str, cb: NativeCallback<'a>, params: &[&'a str]) {
+    pub fn native_callback<F>(&mut self, name: &str, cb: F, params: &[&str])
+        where for<'a> F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>
+    {
         let ctx = NativeContext {
             vm: self,
             argc: params.len(),
@@ -434,7 +446,7 @@ impl JsonnetVm {
         unsafe {
             jsonnet_sys::jsonnet_native_callback(self.as_ptr(),
                                                  cname.as_ptr(),
-                                                 native_callback as *const _,
+                                                 native_callback::<F> as *const _,
                                                  // TODO: ctx is leaked :(
                                                  Box::into_raw(Box::new(ctx)) as *mut _,
                                                  cptrs.as_slice().as_ptr());
