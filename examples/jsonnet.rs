@@ -1,18 +1,20 @@
 /// An almost-but-not-quite drop-in for the official `jsonnet`
 /// executable.
 
-#[macro_use] extern crate clap;
+#[macro_use]
+extern crate clap;
 extern crate jsonnet;
 
-use std::io::{self,Write};
-use std::{process,env};
-use clap::{App,Arg,SubCommand,AppSettings,ArgMatches};
-use std::error::Error as StdError;
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use jsonnet::{jsonnet_version, JsonnetVm};
 use std::borrow::Cow;
-use jsonnet::{JsonnetVm,jsonnet_version};
+use std::error::Error as StdError;
+use std::io::{self, Write};
+use std::{env, process};
 
 fn typed_arg_or_exit<'a, T>(matches: &ArgMatches<'a>, arg: &str) -> Option<T>
-    where T: std::str::FromStr
+where
+    T: std::str::FromStr,
 {
     if matches.is_present(arg) {
         let v = value_t!(matches, arg, T).unwrap_or_else(|e| e.exit());
@@ -25,7 +27,7 @@ fn typed_arg_or_exit<'a, T>(matches: &ArgMatches<'a>, arg: &str) -> Option<T>
 /// Parse "foo" into ("foo", None) and "foo=bar" into ("foo", Some("bar"))
 fn parse_kv(s: &str) -> (&str, Option<&str>) {
     match s.find('=') {
-        Some(i) => (&s[..i], Some(&s[i+1..])),
+        Some(i) => (&s[..i], Some(&s[i + 1..])),
         None => (s, None),
     }
 }
@@ -37,7 +39,7 @@ fn test_parse_kv() {
     assert_eq!(parse_kv("foo="), ("foo", Some("")));
 }
 
-fn build_cli<'a,'b>(version: &'b str) -> App<'a,'b> {
+fn build_cli<'a, 'b>(version: &'b str) -> App<'a, 'b> {
     App::new("jsonnet")
         .version(version)
         .author(crate_authors!())
@@ -162,7 +164,7 @@ fn build_cli<'a,'b>(version: &'b str) -> App<'a,'b> {
                          .help("Input jsonnet file")))
 }
 
-fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Box<StdError+'a>> {
+fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Box<StdError + 'a>> {
     if let Some(n) = typed_arg_or_exit(matches, "max-stack") {
         vm.max_stack(n);
     }
@@ -220,20 +222,19 @@ fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), B
         }
     }
 
-    let output =
-        if matches.is_present("exec") {
-            let expr = matches.value_of("INPUT").unwrap();
-            try!(vm.evaluate_snippet("INPUT", expr))
-        } else {
-            let file = matches.value_of_os("INPUT").unwrap();
-            try!(vm.evaluate_file(file))
-        };
+    let output = if matches.is_present("exec") {
+        let expr = matches.value_of("INPUT").unwrap();
+        try!(vm.evaluate_snippet("INPUT", expr))
+    } else {
+        let file = matches.value_of_os("INPUT").unwrap();
+        try!(vm.evaluate_file(file))
+    };
 
     print!("{}", output);
     Ok(())
 }
 
-fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Box<StdError+'a>> {
+fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Box<StdError + 'a>> {
     if let Some(n) = typed_arg_or_exit(matches, "indent") {
         vm.fmt_indent(n);
     }
@@ -274,14 +275,13 @@ fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Bo
         vm.fmt_debug_desugaring(true);
     }
 
-    let output =
-        if matches.is_present("exec") {
-            let expr = matches.value_of("INPUT").unwrap();
-            try!(vm.fmt_snippet("INPUT", expr))
-        } else {
-            let file = matches.value_of_os("INPUT").unwrap();
-            try!(vm.fmt_file(file))
-        };
+    let output = if matches.is_present("exec") {
+        let expr = matches.value_of("INPUT").unwrap();
+        try!(vm.fmt_snippet("INPUT", expr))
+    } else {
+        let file = matches.value_of_os("INPUT").unwrap();
+        try!(vm.fmt_file(file))
+    };
 
     print!("{}", output);
     Ok(())
@@ -290,25 +290,23 @@ fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Bo
 fn main() {
     let version = format!("{} (libjsonnet {})", crate_version!(), jsonnet_version());
 
-    let matches = build_cli(&version)
-        .get_matches();
+    let matches = build_cli(&version).get_matches();
 
     let mut vm = JsonnetVm::new();
 
-    let result =
-        if let Some(matches) = matches.subcommand_matches("eval") {
-            eval(&mut vm, matches)
-        } else if let Some(matches) = matches.subcommand_matches("fmt") {
-            fmt(&mut vm, matches)
-        } else {
-            unreachable!();
-        };
+    let result = if let Some(matches) = matches.subcommand_matches("eval") {
+        eval(&mut vm, matches)
+    } else if let Some(matches) = matches.subcommand_matches("fmt") {
+        fmt(&mut vm, matches)
+    } else {
+        unreachable!();
+    };
 
     match result {
         Ok(()) => (),
         Err(e) => {
             write!(&mut io::stderr(), "{}", e).unwrap();
             process::exit(1);
-        },
+        }
     };
 }
