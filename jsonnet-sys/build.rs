@@ -40,7 +40,7 @@ fn main() {
         "vm.cpp",
     ];
 
-    let mut c = gcc::Build::new();
+    let mut c = cc::Build::new();
     c.cpp(true)
         .flag("-std=c++0x")
         .include(dir.join("include"))
