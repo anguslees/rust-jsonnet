@@ -1,9 +1,9 @@
 extern crate gcc;
 
+use std::fs::File;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::process::Command;
-use std::fs::File;
-use std::io::{Read,Write};
 
 fn main() {
     if !Path::new("jsonnet/.git").exists() {
@@ -14,9 +14,7 @@ fn main() {
 
     let dir = Path::new("jsonnet");
 
-    let embedded = [
-        "std",
-    ];
+    let embedded = ["std"];
     for f in &embedded {
         let output = dir.join("core").join(format!("{}.jsonnet.h", f));
         if output.exists() {

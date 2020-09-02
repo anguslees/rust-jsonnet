@@ -1,11 +1,11 @@
-use std::ffi::CStr;
-use std::ops::Deref;
-use std::{fmt,ptr,mem};
-use std::marker::PhantomData;
 use libc::{c_char, size_t};
+use std::ffi::CStr;
+use std::marker::PhantomData;
+use std::ops::Deref;
+use std::{fmt, mem, ptr};
 
-use jsonnet_sys;
 use super::JsonnetVm;
+use jsonnet_sys;
 
 /// Rust wrapper for libjsonnet string values.
 ///
@@ -38,7 +38,7 @@ impl<'a> JsonnetString<'a> {
         unsafe {
             let p = jsonnet_sys::jsonnet_realloc(vm.as_ptr(), ptr::null(), v.len() + 1);
             ptr::copy_nonoverlapping(v.as_ptr(), p as *mut u8, v.len());
-            *(p.offset(v.len() as isize)) = 0;  // trailing nul for C string
+            *(p.offset(v.len() as isize)) = 0; // trailing nul for C string
             Self::from_ptr(vm, p)
         }
     }
@@ -52,7 +52,7 @@ impl<'a> JsonnetString<'a> {
     /// terminated).  It is up to the caller to ensure that `p` was
     /// indeed allocated by `vm`.
     pub unsafe fn from_ptr(vm: &'a JsonnetVm, p: *mut c_char) -> Self {
-        JsonnetString{vm: vm, data: p}
+        JsonnetString { vm: vm, data: p }
     }
 
     fn realloc(&mut self, size: size_t) {
@@ -74,7 +74,9 @@ impl<'a> JsonnetString<'a> {
     /// Returns the inner pointer to this jsonnet string.
     ///
     /// The returned pointer will be valid for as long as `self` is.
-    pub fn as_ptr(&self) -> *const c_char { self.data }
+    pub fn as_ptr(&self) -> *const c_char {
+        self.data
+    }
 
     /// Transfer ownership to a C caller (presumably a jsonnet
     /// function).
@@ -91,7 +93,9 @@ impl<'a> JsonnetString<'a> {
 
 impl<'a> Deref for JsonnetString<'a> {
     type Target = str;
-    fn deref(&self) -> &str { self.as_str() }
+    fn deref(&self) -> &str {
+        self.as_str()
+    }
 }
 
 impl<'a> fmt::Debug for JsonnetString<'a> {
@@ -130,17 +134,20 @@ fn simple() {
 
 /// An iterator over nul-separated multi-valued jsonnet string.
 #[derive(Debug)]
-pub struct JsonnetStringIter<'a,'b:'a> {
+pub struct JsonnetStringIter<'a, 'b: 'a> {
     cursor: *const c_char,
     marker: PhantomData<&'a JsonnetString<'b>>,
 }
 
-impl<'a,'b> JsonnetStringIter<'a,'b> {
+impl<'a, 'b> JsonnetStringIter<'a, 'b> {
     /// Caller takes responsibility for ensuring this actually is a
     /// multi-valued string.
     pub unsafe fn new(inner: &'a JsonnetString<'b>) -> Self {
         let cursor = inner.as_ptr();
-        JsonnetStringIter{cursor: cursor, marker: PhantomData}
+        JsonnetStringIter {
+            cursor: cursor,
+            marker: PhantomData,
+        }
     }
 
     fn end(&self) -> bool {
@@ -157,7 +164,7 @@ impl<'a,'b> JsonnetStringIter<'a,'b> {
     }
 }
 
-impl<'a,'b> Iterator for JsonnetStringIter<'a,'b> {
+impl<'a, 'b> Iterator for JsonnetStringIter<'a, 'b> {
     type Item = &'a str;
     fn next(&mut self) -> Option<Self::Item> {
         if self.end() {

@@ -21,38 +21,44 @@
 #![deny(missing_docs)]
 #![allow(trivial_casts)]
 
-extern crate libc;
 extern crate jsonnet_sys;
+extern crate libc;
 
+use libc::{c_char, c_int, c_uint, c_void};
 use std::ffi::{CStr, CString, OsStr};
-use std::path::{Path,PathBuf};
-use std::{error,iter,ptr,fmt};
 use std::ops::Deref;
-use libc::{c_int, c_uint, c_char, c_void};
+use std::path::{Path, PathBuf};
+use std::{error, fmt, iter, ptr};
 
 mod string;
 mod value;
 
+use jsonnet_sys::JsonnetJsonValue;
 pub use string::JsonnetString;
 use string::JsonnetStringIter;
 pub use value::{JsonVal, JsonValue};
-use jsonnet_sys::JsonnetJsonValue;
 
 /// Error returned from jsonnet routines on failure.
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Error<'a>(JsonnetString<'a>);
 
 impl<'a> From<JsonnetString<'a>> for Error<'a> {
-    fn from(s: JsonnetString<'a>) -> Self { Error(s) }
+    fn from(s: JsonnetString<'a>) -> Self {
+        Error(s)
+    }
 }
 
 impl<'a> From<Error<'a>> for JsonnetString<'a> {
-    fn from(e: Error<'a>) -> Self { e.0 }
+    fn from(e: Error<'a>) -> Self {
+        e.0
+    }
 }
 
 impl<'a> Deref for Error<'a> {
     type Target = JsonnetString<'a>;
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl<'a> fmt::Display for Error<'a> {
@@ -62,7 +68,9 @@ impl<'a> fmt::Display for Error<'a> {
 }
 
 impl<'a> error::Error for Error<'a> {
-    fn description(&self) -> &str { "jsonnet error" }
+    fn description(&self) -> &str {
+        "jsonnet error"
+    }
 }
 
 /// Result from "multi" eval methods.
@@ -71,31 +79,32 @@ impl<'a> error::Error for Error<'a> {
 pub struct EvalMap<'a>(JsonnetString<'a>);
 impl<'a> EvalMap<'a> {
     /// Returns an iterator over the contained values.
-    pub fn iter<'b>(&'b self) -> EvalMapIter<'b,'a> {
+    pub fn iter<'b>(&'b self) -> EvalMapIter<'b, 'a> {
         EvalMapIter(unsafe { JsonnetStringIter::new(&self.0) })
     }
 }
 
-impl<'a,'b> IntoIterator for &'b EvalMap<'a> {
+impl<'a, 'b> IntoIterator for &'b EvalMap<'a> {
     type Item = (&'b str, &'b str);
-    type IntoIter = EvalMapIter<'b,'a>;
-    fn into_iter(self) -> Self::IntoIter { self.iter() }
+    type IntoIter = EvalMapIter<'b, 'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
 }
 
 /// Iterator returned from "multi" eval methods.
 ///
 /// Yields (&str, &str) pairs.
 #[derive(Debug)]
-pub struct EvalMapIter<'a,'b:'a>(JsonnetStringIter<'a,'b>);
+pub struct EvalMapIter<'a, 'b: 'a>(JsonnetStringIter<'a, 'b>);
 
-impl<'a,'b> Iterator for EvalMapIter<'a,'b> {
+impl<'a, 'b> Iterator for EvalMapIter<'a, 'b> {
     type Item = (&'a str, &'a str);
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-            .map(|first| {
-                let second = self.0.next().unwrap();
-                (first, second)
-            })
+        self.0.next().map(|first| {
+            let second = self.0.next().unwrap();
+            (first, second)
+        })
     }
 }
 
@@ -105,7 +114,7 @@ impl<'a,'b> Iterator for EvalMapIter<'a,'b> {
 pub struct EvalList<'a>(JsonnetString<'a>);
 impl<'a> EvalList<'a> {
     /// Returns an iterator over the contained values.
-    pub fn iter<'b>(&'b self) -> EvalListIter<'b,'a> {
+    pub fn iter<'b>(&'b self) -> EvalListIter<'b, 'a> {
         EvalListIter(unsafe { JsonnetStringIter::new(&self.0) })
     }
 }
@@ -113,21 +122,25 @@ impl<'a> EvalList<'a> {
 /// Iterator returned from "stream" eval methods.
 ///
 /// Yields &str items.
-pub struct EvalListIter<'a,'b:'a>(JsonnetStringIter<'a,'b>);
+pub struct EvalListIter<'a, 'b: 'a>(JsonnetStringIter<'a, 'b>);
 
-impl<'a,'b> Iterator for EvalListIter<'a,'b> {
+impl<'a, 'b> Iterator for EvalListIter<'a, 'b> {
     type Item = &'a str;
-    fn next(&mut self) -> Option<Self::Item> { self.0.next() }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
 }
 
-impl<'a,'b> IntoIterator for &'b EvalList<'a> {
+impl<'a, 'b> IntoIterator for &'b EvalList<'a> {
     type Item = &'b str;
-    type IntoIter = EvalListIter<'b,'a>;
-    fn into_iter(self) -> Self::IntoIter { self.iter() }
+    type IntoIter = EvalListIter<'b, 'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
 }
 
 /// String literal style
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FmtString {
     /// Double quoted `"foo"`.
     Double,
@@ -149,11 +162,13 @@ impl FmtString {
 }
 
 impl Default for FmtString {
-    fn default() -> FmtString { FmtString::Leave }
+    fn default() -> FmtString {
+        FmtString::Leave
+    }
 }
 
 /// Comment style
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FmtComment {
     /// Hash comments (like shell).
     Hash,
@@ -175,7 +190,9 @@ impl FmtComment {
 }
 
 impl Default for FmtComment {
-    fn default() -> FmtComment { FmtComment::Leave }
+    fn default() -> FmtComment {
+        FmtComment::Leave
+    }
 }
 
 /// Return the version string of the Jsonnet interpreter.  Conforms to
@@ -238,8 +255,15 @@ fn osstr2cstring<T: AsRef<OsStr>>(os: T) -> CString {
 // `jsonnet_sys::JsonnetImportCallback`-compatible function that
 // interprets `ctx` as an `ImportContext` and converts arguments
 // appropriately.
-extern fn import_callback<F>(ctx: *mut c_void, base: &c_char, rel: &c_char, found_here: &mut *mut c_char, success: &mut c_int) -> *mut c_char
-where F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>
+extern "C" fn import_callback<F>(
+    ctx: *mut c_void,
+    base: &c_char,
+    rel: &c_char,
+    found_here: &mut *mut c_char,
+    success: &mut c_int,
+) -> *mut c_char
+where
+    F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>,
 {
     let ctx = unsafe { &*(ctx as *mut ImportContext<F>) };
     let vm = ctx.vm;
@@ -258,7 +282,7 @@ where F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>
             *found_here = v.into_raw();
 
             JsonnetString::new(vm, &contents).into_raw()
-        },
+        }
         Err(err) => {
             *success = 0;
             JsonnetString::new(vm, &err).into_raw()
@@ -280,8 +304,13 @@ struct NativeContext<'a, F> {
 // `jsonnet_sys::JsonnetNativeCallback`-compatible function that
 // interprets `ctx` as a `NativeContext` and converts arguments
 // appropriately.
-extern fn native_callback<'a, F>(ctx: *mut libc::c_void, argv: *const *const JsonnetJsonValue, success: &mut c_int) -> *mut JsonnetJsonValue
-where F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>
+extern "C" fn native_callback<'a, F>(
+    ctx: *mut libc::c_void,
+    argv: *const *const JsonnetJsonValue,
+    success: &mut c_int,
+) -> *mut JsonnetJsonValue
+where
+    F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>,
 {
     let ctx = unsafe { &*(ctx as *mut NativeContext<F>) };
     let vm = ctx.vm;
@@ -293,7 +322,7 @@ where F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>
         Ok(v) => {
             *success = 1;
             v.into_raw()
-        },
+        }
         Err(err) => {
             *success = 0;
             let ret = JsonValue::from_str(vm, &err);
@@ -312,7 +341,9 @@ impl JsonnetVm {
         JsonnetVm(vm)
     }
 
-    fn as_ptr(&self) -> *mut jsonnet_sys::JsonnetVm { self.0 }
+    fn as_ptr(&self) -> *mut jsonnet_sys::JsonnetVm {
+        self.0
+    }
 
     /// Set the maximum stack depth.
     pub fn max_stack(&mut self, v: u32) {
@@ -335,7 +366,6 @@ impl JsonnetVm {
     pub fn string_output(&mut self, v: bool) {
         unsafe { jsonnet_sys::jsonnet_string_output(self.0, v as c_int) }
     }
-
 
     /// Override the callback used to locate imports.
     ///
@@ -368,17 +398,17 @@ impl JsonnetVm {
     /// }
     /// ```
     pub fn import_callback<F>(&mut self, cb: F)
-        where F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>
+    where
+        F: Fn(&JsonnetVm, &Path, &Path) -> Result<(PathBuf, String), String>,
     {
-        let ctx = ImportContext {
-            vm: self,
-            cb: cb,
-        };
+        let ctx = ImportContext { vm: self, cb: cb };
         unsafe {
-            jsonnet_sys::jsonnet_import_callback(self.as_ptr(),
-                                                 import_callback::<F> as *const _,
-                                                 // TODO: ctx is leaked :(
-                                                 Box::into_raw(Box::new(ctx)) as *mut _);
+            jsonnet_sys::jsonnet_import_callback(
+                self.as_ptr(),
+                import_callback::<F> as *const _,
+                // TODO: ctx is leaked :(
+                Box::into_raw(Box::new(ctx)) as *mut _,
+            );
         }
     }
 
@@ -428,7 +458,8 @@ impl JsonnetVm {
     ///
     /// Panics if `name` or `params` contain any embedded nul characters.
     pub fn native_callback<F>(&mut self, name: &str, cb: F, params: &[&str])
-        where for<'a> F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>
+    where
+        for<'a> F: Fn(&'a JsonnetVm, &[JsonVal<'a>]) -> Result<JsonValue<'a>, String>,
     {
         let ctx = NativeContext {
             vm: self,
@@ -436,20 +467,24 @@ impl JsonnetVm {
             cb: cb,
         };
         let cname = CString::new(name).unwrap();
-        let cparams: Vec<_> = params.into_iter()
+        let cparams: Vec<_> = params
+            .into_iter()
             .map(|&p| CString::new(p).unwrap())
             .collect();
-        let cptrs: Vec<_> = cparams.iter()
+        let cptrs: Vec<_> = cparams
+            .iter()
             .map(|p| p.as_ptr())
             .chain(iter::once(ptr::null()))
             .collect();
         unsafe {
-            jsonnet_sys::jsonnet_native_callback(self.as_ptr(),
-                                                 cname.as_ptr(),
-                                                 native_callback::<F> as *const _,
-                                                 // TODO: ctx is leaked :(
-                                                 Box::into_raw(Box::new(ctx)) as *mut _,
-                                                 cptrs.as_slice().as_ptr());
+            jsonnet_sys::jsonnet_native_callback(
+                self.as_ptr(),
+                cname.as_ptr(),
+                native_callback::<F> as *const _,
+                // TODO: ctx is leaked :(
+                Box::into_raw(Box::new(ctx)) as *mut _,
+                cptrs.as_slice().as_ptr(),
+            );
         }
     }
 
@@ -573,8 +608,9 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` contains embedded nul characters.
-    pub fn fmt_file<'a,P>(&'a mut self, filename: P) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn fmt_file<'a, P>(&'a mut self, filename: P) -> Result<JsonnetString<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let mut error = 1;
@@ -593,14 +629,24 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` or `snippet` contain embedded nul characters.
-    pub fn fmt_snippet<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn fmt_snippet<'a, P>(
+        &'a mut self,
+        filename: P,
+        snippet: &str,
+    ) -> Result<JsonnetString<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let snippet = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
-            let v = jsonnet_sys::jsonnet_fmt_snippet(self.0, fname.as_ptr(), snippet.as_ptr(), &mut error);
+            let v = jsonnet_sys::jsonnet_fmt_snippet(
+                self.0,
+                fname.as_ptr(),
+                snippet.as_ptr(),
+                &mut error,
+            );
             JsonnetString::from_ptr(self, v)
         };
         match error {
@@ -626,7 +672,8 @@ impl JsonnetVm {
     ///
     /// Panics if `path` contains embedded nul characters.
     pub fn jpath_add<P>(&mut self, path: P)
-        where P: AsRef<OsStr>
+    where
+        P: AsRef<OsStr>,
     {
         let v = osstr2cstring(path);
         unsafe {
@@ -643,8 +690,9 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` contains embedded nul characters.
-    pub fn evaluate_file<'a,P>(&'a mut self, filename: P) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn evaluate_file<'a, P>(&'a mut self, filename: P) -> Result<JsonnetString<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let mut error = 1;
@@ -669,14 +717,24 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` or `snippet` contain embedded nul characters.
-    pub fn evaluate_snippet<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<JsonnetString<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn evaluate_snippet<'a, P>(
+        &'a mut self,
+        filename: P,
+        snippet: &str,
+    ) -> Result<JsonnetString<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let snip = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
-            let v = jsonnet_sys::jsonnet_evaluate_snippet(self.0, fname.as_ptr(), snip.as_ptr(), &mut error);
+            let v = jsonnet_sys::jsonnet_evaluate_snippet(
+                self.0,
+                fname.as_ptr(),
+                snip.as_ptr(),
+                &mut error,
+            );
             JsonnetString::from_ptr(self, v)
         };
         match error {
@@ -695,8 +753,9 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` contains embedded nul characters.
-    pub fn evaluate_file_multi<'a,P>(&'a mut self, filename: P) -> Result<EvalMap<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn evaluate_file_multi<'a, P>(&'a mut self, filename: P) -> Result<EvalMap<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let mut error = 1;
@@ -734,14 +793,24 @@ impl JsonnetVm {
     /// let map: HashMap<_,_> = output.iter().collect();
     /// assert_eq!(*map.get("bar.json").unwrap(), "\"bar\"\n");
     /// ```
-    pub fn evaluate_snippet_multi<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<EvalMap<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn evaluate_snippet_multi<'a, P>(
+        &'a mut self,
+        filename: P,
+        snippet: &str,
+    ) -> Result<EvalMap<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let snippet = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
-            let v = jsonnet_sys::jsonnet_evaluate_snippet_multi(self.0, fname.as_ptr(), snippet.as_ptr(), &mut error);
+            let v = jsonnet_sys::jsonnet_evaluate_snippet_multi(
+                self.0,
+                fname.as_ptr(),
+                snippet.as_ptr(),
+                &mut error,
+            );
             JsonnetString::from_ptr(self, v)
         };
         match error {
@@ -760,8 +829,9 @@ impl JsonnetVm {
     /// # Panics
     ///
     /// Panics if `filename` contains embedded nul characters.
-    pub fn evaluate_file_stream<'a,P>(&'a mut self, filename: P) -> Result<EvalList<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn evaluate_file_stream<'a, P>(&'a mut self, filename: P) -> Result<EvalList<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let mut error = 1;
@@ -798,14 +868,24 @@ impl JsonnetVm {
     /// let list: Vec<_> = output.iter().collect();
     /// assert_eq!(list, vec!["\"foo\"\n", "\"bar\"\n"]);
     /// ```
-    pub fn evaluate_snippet_stream<'a,P>(&'a mut self, filename: P, snippet: &str) -> Result<EvalList<'a>, Error<'a>>
-        where P: AsRef<OsStr>
+    pub fn evaluate_snippet_stream<'a, P>(
+        &'a mut self,
+        filename: P,
+        snippet: &str,
+    ) -> Result<EvalList<'a>, Error<'a>>
+    where
+        P: AsRef<OsStr>,
     {
         let fname = osstr2cstring(filename);
         let snippet = CString::new(snippet).unwrap();
         let mut error = 1;
         let output = unsafe {
-            let v = jsonnet_sys::jsonnet_evaluate_snippet_stream(self.0, fname.as_ptr(), snippet.as_ptr(), &mut error);
+            let v = jsonnet_sys::jsonnet_evaluate_snippet_stream(
+                self.0,
+                fname.as_ptr(),
+                snippet.as_ptr(),
+                &mut error,
+            );
             JsonnetString::from_ptr(self, v)
         };
         match error {

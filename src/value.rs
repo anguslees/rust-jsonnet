@@ -1,10 +1,10 @@
-use std::ffi::{CStr,CString};
-use std::mem;
+use libc::c_int;
+use std::ffi::{CStr, CString};
 use std::marker;
-use libc::{c_int};
+use std::mem;
 
-use jsonnet_sys::{self,JsonnetJsonValue};
 use super::JsonnetVm;
+use jsonnet_sys::{self, JsonnetJsonValue};
 
 /// Rust wrapper for borrowed libjsonnet JSON values.
 ///
@@ -23,13 +23,15 @@ impl<'a> JsonVal<'a> {
     /// It is up to the caller to ensure that `p` was indeed allocated
     /// by `vm`.
     pub unsafe fn from_ptr(vm: &'a JsonnetVm, p: *const JsonnetJsonValue) -> Self {
-        JsonVal{vm: vm, value: p}
+        JsonVal { vm: vm, value: p }
     }
 
     /// Returns the inner pointer to this jsonnet value.
     ///
     /// The returned pointer will be valid for as long as `self` is.
-    pub fn as_ptr(&self) -> *const JsonnetJsonValue { self.value }
+    pub fn as_ptr(&self) -> *const JsonnetJsonValue {
+        self.value
+    }
 
     /// Returns the value, if it is a string.
     pub fn as_str(&self) -> Option<&str> {
@@ -59,9 +61,7 @@ impl<'a> JsonVal<'a> {
 
     /// Returns the value, if it is a bool.
     pub fn as_bool(&self) -> Option<bool> {
-        let v = unsafe {
-            jsonnet_sys::jsonnet_json_extract_bool(self.vm.as_ptr(), self.as_ptr())
-        };
+        let v = unsafe { jsonnet_sys::jsonnet_json_extract_bool(self.vm.as_ptr(), self.as_ptr()) };
         match v {
             0 => Some(false),
             1 => Some(true),
@@ -72,9 +72,7 @@ impl<'a> JsonVal<'a> {
 
     /// Returns `Some(())` if the value is `null`.
     pub fn as_null(&self) -> Option<()> {
-        let v = unsafe {
-            jsonnet_sys::jsonnet_json_extract_null(self.vm.as_ptr(), self.as_ptr())
-        };
+        let v = unsafe { jsonnet_sys::jsonnet_json_extract_null(self.vm.as_ptr(), self.as_ptr()) };
         match v {
             0 => None,
             1 => Some(()),
@@ -102,13 +100,19 @@ impl<'a> JsonValue<'a> {
     /// It is up to the caller to ensure that `p` was indeed allocated
     /// by `vm`.
     pub unsafe fn from_ptr(vm: &'a JsonnetVm, p: *mut JsonnetJsonValue) -> Self {
-        JsonValue{vm: vm, value: p, _marker: marker::PhantomData}
+        JsonValue {
+            vm: vm,
+            value: p,
+            _marker: marker::PhantomData,
+        }
     }
 
     /// Returns the inner pointer to this jsonnet value.
     ///
     /// The returned pointer will be valid for as long as `self` is.
-    pub fn as_ptr(&self) -> *const JsonnetJsonValue { self.value }
+    pub fn as_ptr(&self) -> *const JsonnetJsonValue {
+        self.value
+    }
 
     /// Returns the value, if it is a string.
     pub fn as_str(&self) -> Option<&str> {
@@ -138,9 +142,7 @@ impl<'a> JsonValue<'a> {
 
     /// Returns the value, if it is a bool.
     pub fn as_bool(&self) -> Option<bool> {
-        let v = unsafe {
-            jsonnet_sys::jsonnet_json_extract_bool(self.vm.as_ptr(), self.as_ptr())
-        };
+        let v = unsafe { jsonnet_sys::jsonnet_json_extract_bool(self.vm.as_ptr(), self.as_ptr()) };
         match v {
             0 => Some(false),
             1 => Some(true),
@@ -151,9 +153,7 @@ impl<'a> JsonValue<'a> {
 
     /// Returns `Some(())` if the value is `null`.
     pub fn as_null(&self) -> Option<()> {
-        let v = unsafe {
-            jsonnet_sys::jsonnet_json_extract_null(self.vm.as_ptr(), self.as_ptr())
-        };
+        let v = unsafe { jsonnet_sys::jsonnet_json_extract_null(self.vm.as_ptr(), self.as_ptr()) };
         match v {
             0 => None,
             1 => Some(()),
@@ -200,7 +200,8 @@ impl<'a> JsonValue<'a> {
 
     /// Convert the given list into a JsonValue array.
     pub fn from_array<T>(vm: &'a JsonnetVm, iter: T) -> Self
-        where T: IntoIterator<Item=JsonValue<'a>>
+    where
+        T: IntoIterator<Item = JsonValue<'a>>,
     {
         unsafe {
             let p = jsonnet_sys::jsonnet_json_make_array(vm.as_ptr());
@@ -212,16 +213,14 @@ impl<'a> JsonValue<'a> {
     }
 
     /// Convert the given map into a JsonValue object.
-    pub fn from_map<'b,T>(vm: &'a JsonnetVm, iter: T) -> Self
-        where T: IntoIterator<Item=(&'b CStr,JsonValue<'a>)>
+    pub fn from_map<'b, T>(vm: &'a JsonnetVm, iter: T) -> Self
+    where
+        T: IntoIterator<Item = (&'b CStr, JsonValue<'a>)>,
     {
         unsafe {
             let p = jsonnet_sys::jsonnet_json_make_object(vm.as_ptr());
             for (f, v) in iter {
-                jsonnet_sys::jsonnet_json_object_append(vm.as_ptr(),
-                                                        p,
-                                                        f.as_ptr(),
-                                                        v.into_raw());
+                jsonnet_sys::jsonnet_json_object_append(vm.as_ptr(), p, f.as_ptr(), v.into_raw());
             }
             Self::from_ptr(vm, p)
         }
