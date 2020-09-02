@@ -1,5 +1,3 @@
-extern crate libc;
-
 use libc::{c_char, c_double, c_int, c_uint, c_void, size_t};
 
 pub type JsonnetImportCallback = extern "C" fn(

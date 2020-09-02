@@ -1,11 +1,6 @@
 /// An almost-but-not-quite drop-in for the official `jsonnet`
 /// executable.
-
-#[macro_use]
-extern crate clap;
-extern crate jsonnet;
-
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{crate_authors, crate_version, value_t, App, AppSettings, Arg, ArgMatches, SubCommand};
 use jsonnet::{jsonnet_version, JsonnetVm};
 use std::borrow::Cow;
 use std::error::Error as StdError;
@@ -164,7 +159,10 @@ fn build_cli<'a, 'b>(version: &'b str) -> App<'a, 'b> {
                          .help("Input jsonnet file")))
 }
 
-fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Box<StdError + 'a>> {
+fn eval<'a, 'b>(
+    vm: &'a mut JsonnetVm,
+    matches: &ArgMatches<'b>,
+) -> Result<(), Box<dyn StdError + 'a>> {
     if let Some(n) = typed_arg_or_exit(matches, "max-stack") {
         vm.max_stack(n);
     }
@@ -224,17 +222,20 @@ fn eval<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), B
 
     let output = if matches.is_present("exec") {
         let expr = matches.value_of("INPUT").unwrap();
-        try!(vm.evaluate_snippet("INPUT", expr))
+        vm.evaluate_snippet("INPUT", expr)?
     } else {
         let file = matches.value_of_os("INPUT").unwrap();
-        try!(vm.evaluate_file(file))
+        vm.evaluate_file(file)?
     };
 
     print!("{}", output);
     Ok(())
 }
 
-fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Box<StdError + 'a>> {
+fn fmt<'a, 'b>(
+    vm: &'a mut JsonnetVm,
+    matches: &ArgMatches<'b>,
+) -> Result<(), Box<dyn StdError + 'a>> {
     if let Some(n) = typed_arg_or_exit(matches, "indent") {
         vm.fmt_indent(n);
     }
@@ -277,10 +278,10 @@ fn fmt<'a, 'b>(vm: &'a mut JsonnetVm, matches: &ArgMatches<'b>) -> Result<(), Bo
 
     let output = if matches.is_present("exec") {
         let expr = matches.value_of("INPUT").unwrap();
-        try!(vm.fmt_snippet("INPUT", expr))
+        vm.fmt_snippet("INPUT", expr)?
     } else {
         let file = matches.value_of_os("INPUT").unwrap();
-        try!(vm.fmt_file(file))
+        vm.fmt_file(file)?
     };
 
     print!("{}", output);
