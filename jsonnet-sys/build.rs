@@ -44,7 +44,8 @@ fn main() {
     c.cpp(true)
         .flag("-std=c++0x")
         .include(dir.join("include"))
-        .include(dir.join("third_party/md5"));
+        .include(dir.join("third_party/md5"))
+        .include(dir.join("third_party/json"));
 
     for f in &jsonnet_core {
         c.file(dir.join("core").join(f));
