@@ -4,6 +4,7 @@ version = "0.6.0"
 authors = ["Angus Lees <gus@inodes.org>"]
 license = "Apache-2.0"
 keywords = ["json", "jsonnet"]
+edition = "2018"
 readme = "README.md"
 documentation = "https://docs.rs/jsonnet-rs"
 repository = "https://github.com/anguslees/rust-jsonnet.git"

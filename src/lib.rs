@@ -21,9 +21,6 @@
 #![deny(missing_docs)]
 #![allow(trivial_casts)]
 
-extern crate jsonnet_sys;
-extern crate libc;
-
 use libc::{c_char, c_int, c_uint, c_void};
 use std::ffi::{CStr, CString, OsStr};
 use std::ops::Deref;
@@ -33,10 +30,10 @@ use std::{error, fmt, iter, ptr};
 mod string;
 mod value;
 
+pub use crate::string::JsonnetString;
+use crate::string::JsonnetStringIter;
+pub use crate::value::{JsonVal, JsonValue};
 use jsonnet_sys::JsonnetJsonValue;
-pub use string::JsonnetString;
-use string::JsonnetStringIter;
-pub use value::{JsonVal, JsonValue};
 
 /// Error returned from jsonnet routines on failure.
 #[derive(Debug, PartialEq, Eq)]
@@ -423,8 +420,8 @@ impl JsonnetVm {
     /// use jsonnet::{JsonnetVm, JsonVal, JsonValue};
     ///
     /// fn myadd<'a>(vm: &'a JsonnetVm, args: &[JsonVal<'a>]) -> Result<JsonValue<'a>, String> {
-    ///    let a = try!(args[0].as_num().ok_or("Expected a number"));
-    ///    let b = try!(args[1].as_num().ok_or("Expected a number"));
+    ///    let a = args[0].as_num().ok_or("Expected a number")?;
+    ///    let b = args[1].as_num().ok_or("Expected a number")?;
     ///    Ok(JsonValue::from_num(vm, a + b))
     /// }
     ///
@@ -444,7 +441,7 @@ impl JsonnetVm {
     /// }
     ///
     /// vm.native_callback("upcase", |vm, args| {
-    ///       let s = try!(args[0].as_str().ok_or("Expected a string"));
+    ///       let s = args[0].as_str().ok_or("Expected a string")?;
     ///       Ok(JsonValue::from_str(vm, &s.to_uppercase()))
     ///    }, &["s"]);
     /// {
