@@ -58,7 +58,7 @@ jobs:
         with:
           command: build
           args: --examples
-      - uses: MeilCli/test-command-action@v3.0.0
+      - uses: MeilCli/test-command-action@v3.0.2
         with:
           command: ./target/debug/examples/jsonnet eval --exec 2+2
           expect_contain: 4
