@@ -9,6 +9,7 @@ documentation = "https://docs.rs/jsonnet-sys"
 repository = "https://github.com/anguslees/rust-jsonnet.git"
 license = "Apache-2.0"
 description = "Native bindings to the libjsonnet library"
+exclude = ["/jsonnet/doc/third_party"]
 
 [lib]
 name = "jsonnet_sys"
