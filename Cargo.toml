@@ -21,4 +21,4 @@ libc = "0.2"
 jsonnet-sys = { path = "jsonnet-sys", version = "0.17.0" }
 
 [dev-dependencies]
-clap = "2.31"
+clap = "3.1"
